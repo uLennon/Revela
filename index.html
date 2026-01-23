@@ -379,7 +379,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     const res = await fetch("https://menjfaztfkabogifyhua.supabase.co/functions/v1/super-processor", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pick })  // Passando o valor do pick (1, X ou 2)
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      body: JSON.stringify({ pick }) 
     });
 
     if (!res.ok) throw new Error("Erro ao votar");
