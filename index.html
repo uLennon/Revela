@@ -303,14 +303,19 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   const $ = (id) => document.getElementById(id);
   const VOTE_KEY = "revelabet_voted_1x2";
 
+ 
   const SUPABASE_URL = "https://menjfaztfkabogifyhua.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lbmpmYXp0ZmthYm9naWZ5aHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxOTI2NzgsImV4cCI6MjA4NDc2ODY3OH0.SHfs6NnIiNOVCBeXyxcN-tO9hfUCvuY68H_vKwuW7tQ"; // SUA SUPABASE ANON KEY
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lbmpmYXp0ZmthYm9naWZ5aHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxOTI2NzgsImV4cCI6MjA4NDc2ODY3OH0.SHfs6NnIiNOVCBeXyxcN-tO9hfUCvuY68H_vKwuW7tQ";
+
+ 
+  const EDGE_FUNCTION_URL =
+    "https://menjfaztfkabogifyhua.supabase.co/functions/v1/super-processor";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let marketOpen = true;
 
-  // Função para mostrar o status de "Ao Vivo"
+
   function setLive(text, open) {
     $("liveTxt").textContent = text;
     const color = open ? "rgba(34,197,94,.95)" : "rgba(245,158,11,.95)";
@@ -321,7 +326,6 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     });
   }
 
-  // Função para atualizar o estado do mercado
   function render(state) {
     marketOpen = state.marketOpen;
 
@@ -354,7 +358,6 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     }
   }
 
-  // Função para carregar o estado atual do mercado
   async function loadMarket() {
     try {
       const { data, error } = await supabase
@@ -362,47 +365,53 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
         .select("*")
         .eq("id", 1)
         .single();
+
       if (error) throw error;
       render(data);
-    } catch {
+    } catch (err) {
+      console.error(err);
       setLive("OFFLINE", false);
       $("statusTxt").textContent = "🔴 Backend offline.";
     }
   }
 
-  // Função para enviar o voto para a function no Supabase
   async function vote(pick) {
-  if (localStorage.getItem(VOTE_KEY)) return;
+    if (localStorage.getItem(VOTE_KEY)) return;
 
-  try {
-    // Envia o voto para a sua function no Supabase
-    const res = await fetch("https://menjfaztfkabogifyhua.supabase.co/functions/v1/super-processor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pick }) 
-    });
+    try {
+      const res = await fetch(EDGE_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({ pick })
+      });
 
-    if (!res.ok) throw new Error("Erro ao votar");
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t);
+      }
 
-    localStorage.setItem(VOTE_KEY, "1");
-    $("statusTxt").textContent = "✅ Voto registrado!";
-  } catch {
-    $("statusTxt").textContent = "❌ Erro ao votar.";
+      localStorage.setItem(VOTE_KEY, "1");
+      $("statusTxt").textContent = "✅ Voto registrado!";
+    } catch (err) {
+      console.error(err);
+      $("statusTxt").textContent = "❌ Erro ao votar.";
+    }
   }
-}
 
-  // Funções para os botões de voto
   $("bet1").onclick = () => vote("1");
   $("betx").onclick = () => vote("x");
   $("bet2").onclick = () => vote("2");
 
-  // Carregar o estado inicial do mercado
   loadMarket();
 
-  // Configuração do Realtime com Supabase para atualizações em tempo real
   supabase
     .channel("public:market_state")
-    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "market_state" },
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "market_state" },
       (payload) => render(payload.new)
     )
     .subscribe();
