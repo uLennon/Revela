@@ -376,7 +376,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   try {
     // Envia o voto para a sua function no Supabase
-    const res = await fetch("https://menjfaztfkabogifyhua.functions.supabase.co/vote-handler", {
+    const res = await fetch("https://menjfaztfkabogifyhua.supabase.co/functions/v1/vote-handler", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pick }) 
