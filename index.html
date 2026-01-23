@@ -372,23 +372,24 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   // Função para enviar o voto para a function no Supabase
   async function vote(pick) {
-    if (localStorage.getItem(VOTE_KEY)) return;
+  if (localStorage.getItem(VOTE_KEY)) return;
 
-    try {
-      const res = await fetch("https://menjfaztfkabogifyhua.functions.supabase.co/vote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pick })
-      });
+  try {
+    // Envia o voto para a sua function no Supabase
+    const res = await fetch("https://menjfaztfkabogifyhua.supabase.co/functions/v1/super-processor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pick })  // Passando o valor do pick (1, X ou 2)
+    });
 
-      if (!res.ok) throw new Error("Erro ao votar");
+    if (!res.ok) throw new Error("Erro ao votar");
 
-      localStorage.setItem(VOTE_KEY, "1");
-      $("statusTxt").textContent = "✅ Voto registrado!";
-    } catch {
-      $("statusTxt").textContent = "❌ Erro ao votar.";
-    }
+    localStorage.setItem(VOTE_KEY, "1");
+    $("statusTxt").textContent = "✅ Voto registrado!";
+  } catch {
+    $("statusTxt").textContent = "❌ Erro ao votar.";
   }
+}
 
   // Funções para os botões de voto
   $("bet1").onclick = () => vote("1");
