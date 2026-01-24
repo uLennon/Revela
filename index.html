@@ -302,11 +302,15 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 (() => {
   const $ = (id) => document.getElementById(id);
   const VOTE_KEY = "revelabet_voted_1x2";
+
   const SUPABASE_URL = "https://menjfaztfkabogifyhua.supabase.co";
-  const SUPABASE_ANON_KEY =
+  const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_W-2790dCEiXvBZBc1LvXdQ_4jfJXWi4";
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
 
   let marketOpen = true;
   
@@ -321,19 +325,21 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   }
 
   function render(state) {
+    if (!state) return;
+
     marketOpen = state.market_open ?? state.marketOpen;
 
     $("v1").textContent = state.menino;
     $("vx").textContent = state.empate;
     $("v2").textContent = state.menina;
 
-    $("o1").textContent = Number(state.o1).toFixed(2);
-    $("ox").textContent = Number(state.ox).toFixed(2);
-    $("o2").textContent = Number(state.o2).toFixed(2);
+    $("o1").textContent = Number(state.o1 ?? 0).toFixed(2);
+    $("ox").textContent = Number(state.ox ?? 0).toFixed(2);
+    $("o2").textContent = Number(state.o2 ?? 0).toFixed(2);
 
-    $("juiceTxt").textContent = state.juice;
-    $("ovrTxt").textContent   = Number(state.overround).toFixed(2);
-    $("sumProb").textContent  = Number(state.sum_prob ?? state.sumProb).toFixed(2);
+    $("juiceTxt").textContent = state.juice ?? "-";
+    $("ovrTxt").textContent   = Number(state.overround ?? 0).toFixed(2);
+    $("sumProb").textContent  = Number(state.sum_prob ?? state.sumProb ?? 0).toFixed(2);
 
     const voted = localStorage.getItem(VOTE_KEY) === "1";
     ["bet1", "betx", "bet2"].forEach(id => {
@@ -363,7 +369,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       if (error) throw error;
       render(data);
     } catch (err) {
-      console.error(err);
+      console.error("Load error:", err);
       setLive("OFFLINE", false);
       $("statusTxt").textContent = "🔴 Backend offline.";
     }
@@ -373,45 +379,50 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     if (localStorage.getItem(VOTE_KEY)) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke(
+      const { error } = await supabase.functions.invoke(
         "super-processor",
-        {
-          body: { pick }
-        }
+        { body: { pick } }
       );
 
-      if (error) {
-        console.error(error);
-        throw error;
-      }
+      if (error) throw error;
 
       localStorage.setItem(VOTE_KEY, "1");
       $("statusTxt").textContent = "✅ Voto registrado!";
     } catch (err) {
-      console.error(err);
+      console.error("Vote error:", err);
       $("statusTxt").textContent = "❌ Erro ao votar.";
     }
   }
-
 
   $("bet1").onclick = () => vote("1");
   $("betx").onclick = () => vote("x");
   $("bet2").onclick = () => vote("2");
 
-
   loadMarket();
 
-
+  // 🔥 REALTIME CORRETO
   supabase
-    .channel("public:market_state")
+    .channel("market_state_live")
     .on(
       "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "market_state" },
-      (payload) => render(payload.new)
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "market_state",
+        filter: "id=eq.1",
+      },
+      (payload) => {
+        console.log("Realtime UPDATE:", payload.new);
+        render(payload.new);
+      }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log("Realtime status:", status);
+    });
+
 })();
 </script>
+
 
 
 
