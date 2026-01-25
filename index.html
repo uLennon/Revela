@@ -313,12 +313,12 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   );
 
   let marketOpen = true;
-  
+
   function setLive(text, open) {
     $("liveTxt").textContent = text;
     const color = open ? "rgba(34,197,94,.95)" : "rgba(245,158,11,.95)";
     const glow  = open ? "rgba(34,197,94,.12)" : "rgba(245,158,11,.12)";
-    ["dot","sDot"].forEach(id => {
+    ["dot", "sDot"].forEach(id => {
       $(id).style.background = color;
       $(id).style.boxShadow = `0 0 0 3px ${glow}`;
     });
@@ -327,21 +327,26 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   function render(state) {
     if (!state) return;
 
-    marketOpen = state.market_open ?? state.marketOpen;
+    // 🔒 padrão único (igual ao banco)
+    marketOpen = state.marketOpen;
 
+    // votos
     $("v1").textContent = state.menino;
     $("vx").textContent = state.empate;
     $("v2").textContent = state.menina;
 
-    $("o1").textContent = Number(state.o1 ?? 0).toFixed(2);
-    $("ox").textContent = Number(state.ox ?? 0).toFixed(2);
-    $("o2").textContent = Number(state.o2 ?? 0).toFixed(2);
+    // odds
+    $("o1").textContent = Number(state.o1).toFixed(2);
+    $("ox").textContent = Number(state.ox).toFixed(2);
+    $("o2").textContent = Number(state.o2).toFixed(2);
 
-    $("juiceTxt").textContent = state.juice ?? "-";
-    $("ovrTxt").textContent   = Number(state.overround ?? 0).toFixed(2);
-    $("sumProb").textContent  = Number(state.sum_prob ?? state.sumProb ?? 0).toFixed(2);
+    // métricas
+    $("juiceTxt").textContent = state.juice;
+    $("ovrTxt").textContent   = Number(state.overround).toFixed(2);
+    $("sumProb").textContent  = Number(state.sumProb).toFixed(2);
 
     const voted = localStorage.getItem(VOTE_KEY) === "1";
+
     ["bet1", "betx", "bet2"].forEach(id => {
       $(id).disabled = voted || !marketOpen;
     });
@@ -400,7 +405,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   loadMarket();
 
-  // 🔥 REALTIME CORRETO
+  // 🔥 REALTIME
   supabase
     .channel("market_state_live")
     .on(
@@ -422,6 +427,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 })();
 </script>
+
 
 
 
