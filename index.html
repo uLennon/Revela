@@ -207,11 +207,11 @@
             <div class="k">MERCADO</div>
             <div class="v">Resultado Final (1X2)</div>
           </div>
-          <div class="m">
+          <div class="m" style="display: none;">
             <div class="k">JUICE (margem)</div>
             <div class="v"><span id="juiceTxt">30</span>% • Overround <span id="ovrTxt">1.30</span></div>
           </div>
-          <div class="m">
+          <div class="m" style="display: none;">
             <div class="k">SOMA PROB. IMPLÍCITAS</div>
             <div class="v"><span id="sumProb">1.30</span></div>
           </div>
@@ -301,7 +301,6 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 (() => {
   const $ = (id) => document.getElementById(id);
-  const VOTE_KEY = "revelabet_voted_1x2";
 
   const SUPABASE_URL = "https://menjfaztfkabogifyhua.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY =
@@ -311,6 +310,10 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
   );
+
+
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
 
   let marketOpen = true;
 
@@ -327,39 +330,38 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   function render(state) {
     if (!state) return;
 
-    // 🔒 padrão único (igual ao banco)
     marketOpen = state.marketOpen;
 
-    // votos
+
     $("v1").textContent = state.menino;
     $("vx").textContent = state.empate;
     $("v2").textContent = state.menina;
 
-    // odds
+    
     $("o1").textContent = Number(state.o1).toFixed(2);
     $("ox").textContent = Number(state.ox).toFixed(2);
     $("o2").textContent = Number(state.o2).toFixed(2);
 
-    // métricas
+    
     $("juiceTxt").textContent = state.juice;
     $("ovrTxt").textContent   = Number(state.overround).toFixed(2);
     $("sumProb").textContent  = Number(state.sumProb).toFixed(2);
 
-    const voted = localStorage.getItem(VOTE_KEY) === "1";
+    const canVote = marketOpen && !!token;
 
     ["bet1", "betx", "bet2"].forEach(id => {
-      $(id).disabled = voted || !marketOpen;
+      $(id).disabled = !canVote;
     });
 
-    if (!marketOpen) {
+    if (!token) {
+      setLive("TOKEN INVÁLIDO", false);
+      $("statusTxt").textContent = "❌ Acesse usando um QR Code válido.";
+    } else if (!marketOpen) {
       setLive("MERCADO FECHADO", false);
       $("statusTxt").textContent = "Mercado encerrado.";
-    } else if (voted) {
-      setLive("AO VIVO", true);
-      $("statusTxt").textContent = "✅ Você já votou.";
     } else {
       setLive("AO VIVO", true);
-      $("statusTxt").textContent = "🟢 Conectado. Vote e veja as odds.";
+      $("statusTxt").textContent = "🟢 Token válido. Faça seu voto.";
     }
   }
 
@@ -381,21 +383,27 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   }
 
   async function vote(pick) {
-    if (localStorage.getItem(VOTE_KEY)) return;
+    if (!token) return;
 
     try {
       const { error } = await supabase.functions.invoke(
         "super-processor",
-        { body: { pick } }
+        {
+          body: {
+            pick,
+            token, 
+          },
+        }
       );
 
       if (error) throw error;
 
-      localStorage.setItem(VOTE_KEY, "1");
-      $("statusTxt").textContent = "✅ Voto registrado!";
+      $("statusTxt").textContent = "✅ Voto registrado. Obrigado!";
+      ["bet1", "betx", "bet2"].forEach(id => $(id).disabled = true);
     } catch (err) {
       console.error("Vote error:", err);
-      $("statusTxt").textContent = "❌ Erro ao votar.";
+      $("statusTxt").textContent = "❌ Este token já foi usado.";
+      ["bet1", "betx", "bet2"].forEach(id => $(id).disabled = true);
     }
   }
 
@@ -405,7 +413,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   loadMarket();
 
-  // 🔥 REALTIME
+  
   supabase
     .channel("market_state_live")
     .on(
@@ -417,21 +425,13 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
         filter: "id=eq.1",
       },
       (payload) => {
-        console.log("Realtime UPDATE:", payload.new);
         render(payload.new);
       }
     )
-    .subscribe((status) => {
-      console.log("Realtime status:", status);
-    });
-
+    .subscribe();
 })();
 </script>
-
-
-
-
-
+  
 </body>
 </html>
 
