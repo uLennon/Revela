@@ -180,6 +180,88 @@
       display:flex; gap:8px; align-items:center;
       line-height:1.25;
     }
+        @media (max-width: 480px) {
+
+  body {
+    padding: 12px;
+  }
+
+  .wrap {
+    max-width: 100%;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .pill {
+    align-self: flex-end;
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
+  .brand img {
+    height: 28px;
+  }
+
+  .brand .txt .t {
+    font-size: 13px;
+  }
+
+  .brand .txt .s {
+    font-size: 10px;
+  }
+
+  .meta {
+    grid-template-columns: 1fr;
+  }
+
+  .m {
+    padding: 10px;
+  }
+
+  .row {
+    margin-bottom: 12px;
+  }
+
+  .sel {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .odd {
+    font-size: 16px;
+    min-width: 64px;
+    padding: 6px 8px;
+  }
+
+  .votes {
+    font-size: 11px;
+    min-width: auto;
+    padding: 6px 8px;
+  }
+
+  .buttons {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  button {
+    padding: 14px;
+    font-size: 14px;
+  }
+
+  .status {
+    font-size: 11px;
+  }
   </style>
 </head>
 <body>
