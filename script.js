@@ -46,7 +46,7 @@ function render(state) {
   });
 
   if (!token) {
-    setLive("TOKEN INVÁLIDO", false);
+    setLive("BILHETE INVÁLIDO", false);
     $("statusTxt").textContent = "❌ Acesse usando um Bilhete válido.";
   } else if (!marketOpen) {
     setLive("MERCADO FECHADO", false);
