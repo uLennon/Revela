@@ -47,13 +47,13 @@ function render(state) {
 
   if (!token) {
     setLive("TOKEN INVÁLIDO", false);
-    $("statusTxt").textContent = "❌ Acesse usando um QR Code válido.";
+    $("statusTxt").textContent = "❌ Acesse usando um Bilhete válido.";
   } else if (!marketOpen) {
     setLive("MERCADO FECHADO", false);
     $("statusTxt").textContent = "Mercado encerrado.";
   } else {
     setLive("AO VIVO", true);
-    $("statusTxt").textContent = "🟢 Token válido. Faça seu voto.";
+    $("statusTxt").textContent = "🟢 Bilhete válido. Faça seu voto.";
   }
 }
 
@@ -90,7 +90,7 @@ async function vote(pick) {
     $("statusTxt").textContent = "✅ Voto registrado!";
     ["bet1", "betx", "bet2"].forEach(id => $(id).disabled = true);
   } catch {
-    $("statusTxt").textContent = "❌ Token já utilizado.";
+    $("statusTxt").textContent = "❌ Bilhete já utilizado.";
     ["bet1", "betx", "bet2"].forEach(id => $(id).disabled = true);
   }
 }
