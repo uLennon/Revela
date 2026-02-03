@@ -114,3 +114,57 @@ supabase
     (payload) => render(payload.new)
   )
   .subscribe();
+
+const countdownId = 1;
+
+  async function iniciarCountdown() {
+    const { data, error } = await supabase
+      .from('countdown')
+      .select('termina_em')
+      .eq('id', countdownId)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const fim = new Date(data.termina_em);
+    const timer = setInterval(async () => {
+      const agora = new Date();
+      const restante = fim - agora;
+
+
+      if (restante > 0) {
+        const segundos = Math.floor((restante / 1000) % 60);
+        const minutos = Math.floor((restante / 1000 / 60) % 60);
+        const horas = Math.floor((restante / 1000 / 60 / 60));
+        document.getElementById('contador').textContent = 
+          `${horas.toString().padStart(2,'0')}:${minutos.toString().padStart(2,'0')}:${segundos.toString().padStart(2,'0')}`;
+      } else {
+        clearInterval(timer);
+        document.getElementById('contador').style.display = 'none';
+        explodirConfete();
+
+        
+        const { data: msgData, error: msgError } = await supabase
+          .from('countdown_publico')
+          .select('mensagem')
+          .eq('id', countdownId)
+          .maybeSingle(); 
+
+        if (msgError) {
+          console.error(msgError);
+          return;
+        }
+
+        if (msgData) {
+          const msgDiv = document.getElementById('mensagem');
+          msgDiv.textContent = msgData.mensagem;
+          msgDiv.style.display = 'block';
+        }
+      }
+    }, 1000);
+  }
+
+  iniciarCountdown();
