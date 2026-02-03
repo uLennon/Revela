@@ -144,9 +144,7 @@ const countdownId = 1;
       } else {
         clearInterval(timer);
         document.getElementById('contador').style.display = 'none';
-        explodirConfete();
-
-        
+  
         const { data: msgData, error: msgError } = await supabase
           .from('countdown_publico')
           .select('mensagem')
