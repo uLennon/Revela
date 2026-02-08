@@ -11,21 +11,34 @@ const supabase = createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
-const params = new URLSearchParams(window.location.search);
-const token = params.get("token");
+
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp(name + "=([^;]+)"));
+  return match ? match[1] : null;
+}
+
+function setCookie(name, value, days = 1) {
+  document.cookie =
+    `${name}=${value}; path=/; max-age=${days * 86400}; SameSite=None; Secure`;
+}
+
 
 let marketOpen = true;
 
 function setLive(text, open) {
   $("liveTxt").textContent = text;
+
   const color = open ? "rgba(34,197,94,.95)" : "rgba(245,158,11,.95)";
-  const glow  = open ? "rgba(34,197,94,.12)" : "rgba(245,158,11,.12)";
+  const glow = open ? "rgba(34,197,94,.12)" : "rgba(245,158,11,.12)";
 
   ["dot", "sDot"].forEach(id => {
     $(id).style.background = color;
     $(id).style.boxShadow = `0 0 0 3px ${glow}`;
   });
 }
+
+
 
 function render(state) {
   if (!state) return;
@@ -40,22 +53,25 @@ function render(state) {
   $("ox").textContent = Number(state.ox).toFixed(2);
   $("o2").textContent = Number(state.o2).toFixed(2);
 
-  const canVote = marketOpen && !!token;
+  const session = getCookie("vote_session");
+  const canVote = marketOpen && !!session;
+
   ["bet1", "betx", "bet2"].forEach(id => {
     $(id).disabled = !canVote;
   });
 
-  if (!token) {
-    setLive("BILHETE INVÁLIDO", false);
-    $("statusTxt").textContent = "❌ Acesse usando um Bilhete válido.";
+  if (!session) {
+    setLive("SEM SESSÃO", false);
+    $("statusTxt").textContent = "❌ Sessão inválida.";
   } else if (!marketOpen) {
     setLive("MERCADO FECHADO", false);
     $("statusTxt").textContent = "Mercado encerrado.";
   } else {
     setLive("AO VIVO", true);
-    $("statusTxt").textContent = "🟢 Bilhete válido. Faça seu voto.";
+    $("statusTxt").textContent = "🟢 Pronto para votar.";
   }
 }
+
 
 async function loadMarket() {
   try {
@@ -66,7 +82,9 @@ async function loadMarket() {
       .single();
 
     if (error) throw error;
+
     render(data);
+
   } catch (err) {
     console.error(err);
     setLive("OFFLINE", false);
@@ -74,32 +92,50 @@ async function loadMarket() {
   }
 }
 
+
+
 async function vote(pick) {
-  if (!token) return;
+  const session = getCookie("vote_session");
+
+  if (!session) {
+    $("statusTxt").textContent = "❌ Sessão não encontrada.";
+    return;
+  }
 
   try {
-    const { error } = await supabase.functions.invoke(
-      "super-processor",
+    const { data, error } = await supabase.functions.invoke(
+      "vote-handler",
       {
-        body: { pick, token },
+        body: { pick }
       }
     );
 
     if (error) throw error;
 
     $("statusTxt").textContent = "✅ Voto registrado!";
-    ["bet1", "betx", "bet2"].forEach(id => $(id).disabled = true);
-  } catch {
-    $("statusTxt").textContent = "❌ Bilhete já utilizado.";
-    ["bet1", "betx", "bet2"].forEach(id => $(id).disabled = true);
+
+    ["bet1", "betx", "bet2"].forEach(id => {
+      $(id).disabled = true;
+    });
+
+  } catch (err) {
+    console.error(err);
+    $("statusTxt").textContent = "❌ Sessão já utilizada.";
+
+    ["bet1", "betx", "bet2"].forEach(id => {
+      $(id).disabled = true;
+    });
   }
 }
+
 
 $("bet1").onclick = () => vote("1");
 $("betx").onclick = () => vote("x");
 $("bet2").onclick = () => vote("2");
 
 loadMarket();
+
+
 
 supabase
   .channel("market_state_live")
@@ -115,54 +151,54 @@ supabase
   )
   .subscribe();
 
+
 const countdownId = 1;
 
-  async function iniciarCountdown() {
-    const { data, error } = await supabase
-      .from('countdown')
-      .select('termina_em')
-      .eq('id', countdownId)
-      .maybeSingle();
+async function iniciarCountdown() {
+  const { data, error } = await supabase
+    .from('countdown')
+    .select('termina_em')
+    .eq('id', countdownId)
+    .maybeSingle();
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const fim = new Date(data.termina_em);
-    const timer = setInterval(async () => {
-      const agora = new Date();
-      const restante = fim - agora;
-
-
-      if (restante > 0) {
-        const segundos = Math.floor((restante / 1000) % 60);
-        const minutos = Math.floor((restante / 1000 / 60) % 60);
-        const horas = Math.floor((restante / 1000 / 60 / 60));
-        document.getElementById('contador').textContent = 
-          `${horas.toString().padStart(2,'0')}:${minutos.toString().padStart(2,'0')}:${segundos.toString().padStart(2,'0')}`;
-      } else {
-        clearInterval(timer);
-        document.getElementById('contador').style.display = 'none';
-  
-        const { data: msgData, error: msgError } = await supabase
-          .from('countdown_publico')
-          .select('mensagem')
-          .eq('id', countdownId)
-          .maybeSingle(); 
-
-        if (msgError) {
-          console.error(msgError);
-          return;
-        }
-
-        if (msgData) {
-          const msgDiv = document.getElementById('mensagem');
-          msgDiv.textContent = msgData.mensagem;
-          msgDiv.style.display = 'block';
-        }
-      }
-    }, 1000);
+  if (error) {
+    console.error(error);
+    return;
   }
 
-  iniciarCountdown();
+  const fim = new Date(data.termina_em);
+
+  const timer = setInterval(async () => {
+    const agora = new Date();
+    const restante = fim - agora;
+
+    if (restante > 0) {
+      const segundos = Math.floor((restante / 1000) % 60);
+      const minutos = Math.floor((restante / 1000 / 60) % 60);
+      const horas = Math.floor((restante / 1000 / 60 / 60));
+
+      $("contador").textContent =
+        `${horas.toString().padStart(2,'0')}:` +
+        `${minutos.toString().padStart(2,'0')}:` +
+        `${segundos.toString().padStart(2,'0')}`;
+
+    } else {
+      clearInterval(timer);
+      $("contador").style.display = 'none';
+
+      const { data: msgData } = await supabase
+        .from('countdown_publico')
+        .select('mensagem')
+        .eq('id', countdownId)
+        .maybeSingle();
+
+      if (msgData) {
+        const msgDiv = $("mensagem");
+        msgDiv.textContent = msgData.mensagem;
+        msgDiv.style.display = 'block';
+      }
+    }
+  }, 1000);
+}
+
+iniciarCountdown();
