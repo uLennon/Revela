@@ -53,22 +53,25 @@ function render(state) {
   $("ox").textContent = Number(state.ox).toFixed(2);
   $("o2").textContent = Number(state.o2).toFixed(2);
 
-  const session = getCookie("vote_session");
-  const canVote = marketOpen && !!session;
+  const jaVotou = localStorage.getItem("jaVotou");
+
+  const canVote = marketOpen && !jaVotou;
 
   ["bet1", "betx", "bet2"].forEach(id => {
     $(id).disabled = !canVote;
   });
 
-  if (!session) {
-    setLive("SEM SESSÃO", false);
-    $("statusTxt").textContent = "❌ Sessão inválida.";
-  } else if (!marketOpen) {
+  if (jaVotou) {
+    setLive("VOTO REGISTRADO", false);
+    $("statusTxt").textContent = "✅ Você já votou.";
+  }
+  else if (!marketOpen) {
     setLive("MERCADO FECHADO", false);
     $("statusTxt").textContent = "Mercado encerrado.";
-  } else {
+  }
+  else {
     setLive("AO VIVO", true);
-    $("statusTxt").textContent = "🟢 Pronto para votar.";
+    $("statusTxt").textContent = "🟢 Faça seu voto.";
   }
 }
 
