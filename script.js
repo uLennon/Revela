@@ -95,10 +95,8 @@ async function loadMarket() {
 
 
 async function vote(pick) {
-  const session = getCookie("vote_session");
-
-  if (!session) {
-    $("statusTxt").textContent = "❌ Sessão não encontrada.";
+  if (localStorage.getItem("jaVotou")) {
+    $("statusTxt").textContent = "❌ Você já votou.";
     return;
   }
 
@@ -112,19 +110,17 @@ async function vote(pick) {
 
     if (error) throw error;
 
+    // ─── MARCA QUE JÁ VOTOU ────────────
+    localStorage.setItem("jaVotou", "true");
+
     $("statusTxt").textContent = "✅ Voto registrado!";
 
     ["bet1", "betx", "bet2"].forEach(id => {
       $(id).disabled = true;
     });
 
-  } catch (err) {
-    console.error(err);
-    $("statusTxt").textContent = "❌ Sessão já utilizada.";
-
-    ["bet1", "betx", "bet2"].forEach(id => {
-      $(id).disabled = true;
-    });
+  } catch {
+    $("statusTxt").textContent = "❌ Erro ao votar.";
   }
 }
 
